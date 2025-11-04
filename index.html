@@ -1,60 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Uni Marketplace</title>
   <style>
-    body { font-family: Arial; margin: 20px; background: #f9f9f9; }
-    h1 { color: #333; }
-    .ad { background: #fff; padding: 10px; margin: 10px 0; border-radius: 8px; box-shadow: 0 0 5px #ccc; }
-    img { max-width: 150px; border-radius: 8px; }
-    input, textarea { width: 100%; margin-bottom: 10px; padding: 8px; }
-    button { background: #007bff; color: white; border: none; padding: 10px; border-radius: 5px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f8f8f8;
+    }
+    h1 { text-align: center; color: #333; }
+    .form-section, .ads-section {
+      max-width: 600px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .ad {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+    img {
+      max-width: 150px;
+      display: block;
+      margin-top: 5px;
+      border-radius: 5px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      margin-top: 10px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    button.delete {
+      background: #dc3545;
+    }
   </style>
 </head>
 <body>
 
   <h1>Uni Marketplace</h1>
-  <h3>Post Your Ad</h3>
-  <input type="text" id="title" placeholder="Item title">
-  <textarea id="desc" placeholder="Item description"></textarea>
-  <input type="file" id="image" accept="image/*">
-  <button onclick="addAd()">Post Ad</button>
 
-  <h3>All Ads</h3>
-  <div id="ads"></div>
+  <div class="form-section">
+    <h3>Post Your Ad</h3>
+    <input type="text" id="title" placeholder="Item name"><br><br>
+    <textarea id="description" placeholder="Description, price, contact..."></textarea><br><br>
+    <input type="file" id="imageInput"><br><br>
+    <button id="postAd">Post Ad</button>
+  </div>
+
+  <div class="ads-section">
+    <h3>All Ads</h3>
+    <div id="adsContainer"></div>
+  </div>
 
   <script>
-    function addAd() {
-      const title = document.getElementById('title').value;
-      const desc = document.getElementById('desc').value;
-      const imgInput = document.getElementById('image').files[0];
-      const reader = new FileReader();
+    const postBtn = document.getElementById('postAd');
+    const adsContainer = document.getElementById('adsContainer');
 
-      reader.onload = function(e) {
-        const ad = { title, desc, img: e.target.result };
-        let ads = JSON.parse(localStorage.getItem('ads')) || [];
-        ads.push(ad);
-        localStorage.setItem('ads', JSON.stringify(ads));
-        showAds();
-      };
-      reader.readAsDataURL(imgInput);
-    }
+    // Load existing ads from localStorage
+    let ads = JSON.parse(localStorage.getItem('ads')) || [];
 
-    function showAds() {
-      const adsDiv = document.getElementById('ads');
-      adsDiv.innerHTML = '';
-      const ads = JSON.parse(localStorage.getItem('ads')) || [];
-      ads.forEach(ad => {
-        adsDiv.innerHTML += `
-          <div class="ad">
-            <h4>${ad.title}</h4>
-            <p>${ad.desc}</p>
-            <img src="${ad.img}">
-          </div>`;
+    function displayAds() {
+      adsContainer.innerHTML = '';
+      ads.forEach((ad, index) => {
+        const adDiv = document.createElement('div');
+        adDiv.className = 'ad';
+        adDiv.innerHTML = `
+          <h4>${ad.title}</h4>
+          <p>${ad.description}</p>
+          <img src="${ad.image}" alt="Ad Image">
+        `;
+
+        // Show delete button only if it's the same user
+        if (ad.ownerId === localStorage.getItem('userId')) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'delete';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.onclick = () => {
+            ads.splice(index, 1);
+            localStorage.setItem('ads', JSON.stringify(ads));
+            displayAds();
+          };
+          adDiv.appendChild(deleteBtn);
+        }
+
+        adsContainer.appendChild(adDiv);
       });
     }
 
-    showAds();
+    // Generate unique ID for each user (saved locally)
+    if (!localStorage.getItem('userId')) {
+      localStorage.setItem('userId', 'user-' + Math.random().toString(36).substr(2, 9));
+    }
+
+    postBtn.addEventListener('click', () => {
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const imageInput = document.getElementById('imageInput').files[0];
+
+      if (!title || !description || !imageInput) {
+        alert('Please fill all fields!');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const ad = {
+          title,
+          description,
+          image: e.target.result,
+          ownerId: localStorage.getItem('userId')
+        };
+        ads.push(ad);
+        localStorage.setItem('ads', JSON.stringify(ads));
+        displayAds();
+      };
+      reader.readAsDataURL(imageInput);
+    });
+
+    displayAds();
   </script>
 
 </body>
