@@ -1,139 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Uni Marketplace</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
-      background: #f8f8f8;
-    }
-    h1 { text-align: center; color: #333; }
-    .form-section, .ads-section {
-      max-width: 600px;
-      margin: 20px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .ad {
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 8px;
-    }
-    img {
-      max-width: 150px;
-      display: block;
-      margin-top: 5px;
-      border-radius: 5px;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      margin-top: 10px;
-      cursor: pointer;
-      border-radius: 6px;
-    }
-    button.delete {
-      background: #dc3545;
-    }
+    body { font-family: Arial; max-width: 600px; margin: 30px auto; }
+    h1 { text-align: center; }
+    .ad { border: 1px solid #ccc; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+    img { max-width: 100%; border-radius: 8px; }
+    button { background: red; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
-
   <h1>Uni Marketplace</h1>
 
-  <div class="form-section">
+  <div>
     <h3>Post Your Ad</h3>
-    <input type="text" id="title" placeholder="Item name"><br><br>
-    <textarea id="description" placeholder="Description, price, contact..."></textarea><br><br>
+    <input type="text" id="title" placeholder="Ad Title"><br><br>
+    <textarea id="desc" placeholder="Description"></textarea><br><br>
     <input type="file" id="imageInput"><br><br>
-    <button id="postAd">Post Ad</button>
+    <input type="text" id="username" placeholder="Your Name"><br><br>
+    <button onclick="postAd()">Post Ad</button>
   </div>
 
-  <div class="ads-section">
-    <h3>All Ads</h3>
-    <div id="adsContainer"></div>
-  </div>
+  <h3>All Ads</h3>
+  <div id="ads"></div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 
   <script>
-    // STEP 1: Assign a unique ID for each user (only runs once)
-    if (!localStorage.getItem('userId')) {
-      const newId = 'user-' + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('userId', newId);
-      console.log("New user ID:", newId);
-    }
+    // Replace this with your Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    const currentUser = localStorage.getItem('userId');
-    const postBtn = document.getElementById('postAd');
-    const adsContainer = document.getElementById('adsContainer');
+    function postAd() {
+      const title = document.getElementById('title').value;
+      const desc = document.getElementById('desc').value;
+      const username = document.getElementById('username').value;
+      const file = document.getElementById('imageInput').files[0];
 
-    // STEP 2: Load saved ads
-    let ads = JSON.parse(localStorage.getItem('ads')) || [];
-
-    // STEP 3: Display ads
-    function displayAds() {
-      adsContainer.innerHTML = '';
-      ads.forEach((ad, index) => {
-        const adDiv = document.createElement('div');
-        adDiv.className = 'ad';
-        adDiv.innerHTML = `
-          <h4>${ad.title}</h4>
-          <p>${ad.description}</p>
-          <img src="${ad.image}" alt="Ad Image">
-        `;
-
-        // ✅ Only show delete button for the post owner
-        if (ad.ownerId === currentUser) {
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'delete';
-          deleteBtn.textContent = 'Delete';
-          deleteBtn.onclick = () => {
-            ads.splice(index, 1);
-            localStorage.setItem('ads', JSON.stringify(ads));
-            displayAds();
-          };
-          adDiv.appendChild(deleteBtn);
-        }
-
-        adsContainer.appendChild(adDiv);
-      });
-    }
-
-    // STEP 4: Post new ad
-    postBtn.addEventListener('click', () => {
-      const title = document.getElementById('title').value.trim();
-      const description = document.getElementById('description').value.trim();
-      const imageInput = document.getElementById('imageInput').files[0];
-
-      if (!title || !description || !imageInput) {
-        alert('Please fill all fields!');
+      if (!title || !desc || !username) {
+        alert("Please fill all fields");
         return;
       }
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const ad = {
-          title,
-          description,
-          image: e.target.result,
-          ownerId: currentUser
-        };
-        ads.push(ad);
-        localStorage.setItem('ads', JSON.stringify(ads));
-        displayAds();
+        const imageUrl = e.target.result;
+        const newAdRef = db.ref('ads').push();
+        newAdRef.set({
+          title, desc, username, imageUrl
+        });
       };
-      reader.readAsDataURL(imageInput);
+      if (file) reader.readAsDataURL(file);
+      else {
+        const newAdRef = db.ref('ads').push();
+        newAdRef.set({ title, desc, username, imageUrl: "" });
+      }
+    }
+
+    function deleteAd(id, username) {
+      const currentUser = prompt("Enter your name to confirm delete:");
+      if (currentUser === username) {
+        db.ref('ads/' + id).remove();
+      } else {
+        alert("You can delete only your own ads!");
+      }
+    }
+
+    // Display all ads
+    db.ref('ads').on('value', snapshot => {
+      const adsDiv = document.getElementById('ads');
+      adsDiv.innerHTML = "";
+      snapshot.forEach(child => {
+        const ad = child.val();
+        const adDiv = document.createElement('div');
+        adDiv.className = 'ad';
+        adDiv.innerHTML = `
+          <h4>${ad.title}</h4>
+          <p>${ad.desc}</p>
+          ${ad.imageUrl ? `<img src="${ad.imageUrl}">` : ""}
+          <p><b>Posted by:</b> ${ad.username}</p>
+          <button onclick="deleteAd('${child.key}', '${ad.username}')">Delete</button>
+        `;
+        adsDiv.appendChild(adDiv);
+      });
     });
-
-    displayAds();
   </script>
-
 </body>
 </html>
