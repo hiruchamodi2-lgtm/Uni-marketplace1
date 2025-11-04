@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Uni Marketplace</title>
+  <style>
+    body { font-family: Arial; margin: 20px; background: #f9f9f9; }
+    h1 { color: #333; }
+    .ad { background: #fff; padding: 10px; margin: 10px 0; border-radius: 8px; box-shadow: 0 0 5px #ccc; }
+    img { max-width: 150px; border-radius: 8px; }
+    input, textarea { width: 100%; margin-bottom: 10px; padding: 8px; }
+    button { background: #007bff; color: white; border: none; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>Uni Marketplace</h1>
+  <h3>Post Your Ad</h3>
+  <input type="text" id="title" placeholder="Item title">
+  <textarea id="desc" placeholder="Item description"></textarea>
+  <input type="file" id="image" accept="image/*">
+  <button onclick="addAd()">Post Ad</button>
+
+  <h3>All Ads</h3>
+  <div id="ads"></div>
+
+  <script>
+    function addAd() {
+      const title = document.getElementById('title').value;
+      const desc = document.getElementById('desc').value;
+      const imgInput = document.getElementById('image').files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const ad = { title, desc, img: e.target.result };
+        let ads = JSON.parse(localStorage.getItem('ads')) || [];
+        ads.push(ad);
+        localStorage.setItem('ads', JSON.stringify(ads));
+        showAds();
+      };
+      reader.readAsDataURL(imgInput);
+    }
+
+    function showAds() {
+      const adsDiv = document.getElementById('ads');
+      adsDiv.innerHTML = '';
+      const ads = JSON.parse(localStorage.getItem('ads')) || [];
+      ads.forEach(ad => {
+        adsDiv.innerHTML += `
+          <div class="ad">
+            <h4>${ad.title}</h4>
+            <p>${ad.desc}</p>
+            <img src="${ad.img}">
+          </div>`;
+      });
+    }
+
+    showAds();
+  </script>
+
+</body>
+</html>
