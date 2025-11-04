@@ -63,12 +63,21 @@
   </div>
 
   <script>
+    // STEP 1: Assign a unique ID for each user (only runs once)
+    if (!localStorage.getItem('userId')) {
+      const newId = 'user-' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('userId', newId);
+      console.log("New user ID:", newId);
+    }
+
+    const currentUser = localStorage.getItem('userId');
     const postBtn = document.getElementById('postAd');
     const adsContainer = document.getElementById('adsContainer');
 
-    // Load existing ads from localStorage
+    // STEP 2: Load saved ads
     let ads = JSON.parse(localStorage.getItem('ads')) || [];
 
+    // STEP 3: Display ads
     function displayAds() {
       adsContainer.innerHTML = '';
       ads.forEach((ad, index) => {
@@ -80,8 +89,8 @@
           <img src="${ad.image}" alt="Ad Image">
         `;
 
-        // Show delete button only if it's the same user
-        if (ad.ownerId === localStorage.getItem('userId')) {
+        // ✅ Only show delete button for the post owner
+        if (ad.ownerId === currentUser) {
           const deleteBtn = document.createElement('button');
           deleteBtn.className = 'delete';
           deleteBtn.textContent = 'Delete';
@@ -97,14 +106,10 @@
       });
     }
 
-    // Generate unique ID for each user (saved locally)
-    if (!localStorage.getItem('userId')) {
-      localStorage.setItem('userId', 'user-' + Math.random().toString(36).substr(2, 9));
-    }
-
+    // STEP 4: Post new ad
     postBtn.addEventListener('click', () => {
-      const title = document.getElementById('title').value;
-      const description = document.getElementById('description').value;
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
       const imageInput = document.getElementById('imageInput').files[0];
 
       if (!title || !description || !imageInput) {
@@ -118,7 +123,7 @@
           title,
           description,
           image: e.target.result,
-          ownerId: localStorage.getItem('userId')
+          ownerId: currentUser
         };
         ads.push(ad);
         localStorage.setItem('ads', JSON.stringify(ads));
